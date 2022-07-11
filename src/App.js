@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 
 import MoviesList from "./components/MoviesList";
 import "./App.css";
+import AddMovie from "./components/AddMovie";
 
 function App() {
   const [movies, setMovies] = useState([]);
@@ -15,27 +16,33 @@ function App() {
     setError(null);
     try {
       // now make our get request
-      const response = await fetch("https://swapi.dev/api/films/");
-      // returns promise
-      const data = await response.json();
-
+      const response = await fetch(
+        "https://react-http-e0c16-default-rtdb.asia-southeast1.firebasedatabase.app/movies.json"
+      );
+      // analyze response, chekc for errors
       if (!response.ok) {
         throw new Error("Something went wrong...");
         // if error, jumps straight to catch block
       }
 
-      // transform data titles to match props in MoviesList component
-      const transformedMovies = data.results.map((movieData) => {
-        // return new object
-        return {
-          id: movieData.episode_id,
-          title: movieData.title,
-          openingText: movieData.opening_crawl,
-          releaseDate: movieData.release_date,
-        };
-      });
-      // return transformed movies instead of just data.results
-      setMovies(transformedMovies);
+      // returns promise
+      const data = await response.json();
+
+      const loadedMovies = [];
+
+      // work with data response
+      for (const key in data) {
+        // loops through keys in data onject response
+        loadedMovies.push({
+          id: key,
+          title: data[key].title, // drilling into nested object response, dynamically accesses property in JS
+          openingText: data[key].openingText,
+          releaseDate: data[key].releaseDate
+        })
+      }
+
+      // return loaded movies array formatted thanks to for loop above
+      setMovies(loadedMovies);
       // Loading state is now false
       setIsLoading(false);
     } catch (error) {
@@ -50,6 +57,21 @@ function App() {
     // dependancy array to define when useEffect is executed
     fetchMoviesHandler,
   ]);
+
+  const addMovieHandler = async movie => {
+    const res = await fetch(
+      "https://react-http-e0c16-default-rtdb.asia-southeast1.firebasedatabase.app/movies.json",
+      {
+        method: "POST",
+        body: JSON.stringify(movie),
+        headers: {
+          // not required by firebase but many other backend API databses use/require this
+          "Content-Type": "application/json",
+        },
+      });
+    const data = await res.json();
+    console.log(data);
+  }
 
   // declare content, default set to "found no movies"
   let content = <p>Found no movies.</p>;
@@ -66,6 +88,9 @@ function App() {
 
   return (
     <>
+    <section>
+      <AddMovie onAddMovie={addMovieHandler} />
+    </section>
       <section>
         <button onClick={fetchMoviesHandler}>Fetch Movies</button>
       </section>
